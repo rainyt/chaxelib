@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -17,6 +18,7 @@ var (
 	OssEndpoint = flag.String("endpoint", "", "阿里云Endpoint")
 	OssBucket   = flag.String("bucket", "none", "阿里云Bucket")
 	Port        = flag.Int("port", 80, "阿里云Bucket")
+	OssUrl      = flag.String("ossurl", "", "阿里云下载地址")
 )
 
 // pathExists 判断一个文件或文件夹是否存在
@@ -30,6 +32,29 @@ func pathExists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+// 判断OSS是否存在镜像库
+func existOSS(filename string) bool {
+	filename = strings.Join(strings.Split(filename, "")[1:], "")
+	fmt.Println("查询镜像库：", filename)
+	client, err := oss.New(*OssEndpoint, *OssId, *OssSecret)
+	if err != nil {
+		fmt.Println("无法链接Oss服务器", err.Error())
+		return false
+	}
+	bucket, err := client.Bucket(*OssBucket)
+	if err != nil {
+		fmt.Println("无法链接Bucket:"+*OssBucket, err.Error())
+		return false
+	}
+	// 判断是否已经镜像好了
+	existObject, _ := bucket.IsObjectExist(filename)
+	if existObject {
+		fmt.Println(filename, "已镜像")
+		return true
+	}
+	return false
 }
 
 // 上传到OSS服务器
@@ -72,9 +97,38 @@ func uploadOSS(filename string, data []byte) {
 	os.Remove(filename)
 }
 
+type RetData struct {
+	Code int `json:"code"`
+	Data any `json:"data"`
+}
+
+func sendData(w http.ResponseWriter, data RetData) {
+	content, _ := json.Marshal(data)
+	w.Write([]byte(content))
+}
+
 func main() {
 	flag.Parse()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		ossIndex := strings.Index(r.URL.Path, "/oss")
+		if ossIndex == 0 {
+			// 查询oss镜像库
+			queryUrl := strings.ReplaceAll(r.URL.Path, "/oss", "")
+			if existOSS(queryUrl) {
+				sendData(w, RetData{
+					Code: 0,
+					Data: map[string]any{
+						"url": *OssUrl + queryUrl,
+					},
+				})
+			} else {
+				sendData(w, RetData{
+					Code: -1,
+					Data: "不存在镜像",
+				})
+			}
+			return
+		}
 		fmt.Println("请求地址：", r.URL.Path, r.Method)
 		index := strings.Index(r.URL.Path, "files/3.0/")
 		if index != -1 {
@@ -82,14 +136,18 @@ func main() {
 			if err != nil {
 				fmt.Println("请求错误：", err.Error())
 			} else {
-				defer rep.Body.Close()
-				bytes, b := ioutil.ReadAll(rep.Body)
-				if b == nil {
-					// 开始上传到OSS
-					go uploadOSS(r.URL.Path, bytes)
-					w.Write(bytes)
+				if rep.StatusCode == 200 {
+					defer rep.Body.Close()
+					bytes, b := ioutil.ReadAll(rep.Body)
+					if b == nil {
+						// 开始上传到OSS
+						go uploadOSS(r.URL.Path, bytes)
+						w.Write(bytes)
+					} else {
+						fmt.Println("请求错误：", b.Error())
+					}
 				} else {
-					fmt.Println("请求错误：", b.Error())
+					w.Write([]byte("Not exist the Haxelib:" + r.URL.Path))
 				}
 			}
 		} else {

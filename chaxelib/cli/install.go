@@ -84,10 +84,11 @@ func getProjectVersion(libname string) []string {
 	return versions
 }
 
-func InstallHaxelib(libname string, version string) {
+// 检测版本是否有效
+func CheckVersion(libname string, version string) (string, error) {
 	versions := getProjectVersion(libname)
 	if len(versions) == 0 {
-		panic("库" + libname + "不存在")
+		return "", fmt.Errorf("库" + libname + "不存在")
 	}
 	if version != "" {
 		hasVersion := false
@@ -98,12 +99,20 @@ func InstallHaxelib(libname string, version string) {
 			}
 		}
 		if !hasVersion {
-			panic("库" + libname + "不存在" + version + "版本")
+			return "", fmt.Errorf("库" + libname + "不存在" + version + "版本")
 		}
 	} else {
 		version = versions[0]
 	}
 	version = strings.ReplaceAll(version, ".", ",")
+	return version, nil
+}
+
+func InstallHaxelib(libname string, version string) {
+	version, err := CheckVersion(libname, version)
+	if err != nil {
+		panic(err)
+	}
 	libzipfile := libname + "-" + version + ".zip"
 	// 做一个检测
 	ossurl := Haxelib_path + "oss/files/3.0/" + libzipfile

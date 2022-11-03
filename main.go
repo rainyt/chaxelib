@@ -129,29 +129,49 @@ func main() {
 			}
 			return
 		}
-		fmt.Println("请求地址：", r.URL.Path, r.Method)
-		index := strings.Index(r.URL.Path, "files/3.0/")
-		if index != -1 {
-			rep, err := http.Get("https://lib.haxe.org" + r.URL.Path)
-			if err != nil {
-				fmt.Println("请求错误：", err.Error())
+		cloneIndex := strings.Index(r.URL.Path, "/clone")
+		if cloneIndex == 0 {
+			// 查询克隆结果
+			// 查询oss镜像库
+			queryUrl := strings.ReplaceAll(r.URL.Path, "/clone", "")
+			if existOSS(queryUrl) {
+				sendData(w, RetData{
+					Code: 0,
+					Data: "已镜像完成",
+				})
 			} else {
-				if rep.StatusCode == 200 {
-					defer rep.Body.Close()
-					bytes, b := ioutil.ReadAll(rep.Body)
-					if b == nil {
-						// 开始上传到OSS
-						go uploadOSS(r.URL.Path, bytes)
-						w.Write(bytes)
-					} else {
-						fmt.Println("请求错误：", b.Error())
-					}
+				// 尝试镜像
+				fmt.Println("请求地址：", queryUrl)
+				bdata, err := readHaxelib(queryUrl)
+				if err != nil {
+					fmt.Println(err.Error())
+					sendData(w, RetData{
+						Code: -1,
+						Data: err.Error(),
+					})
 				} else {
-					w.Write([]byte("Not exist the Haxelib:" + r.URL.Path))
+					// 开始上传到OSS
+					go uploadOSS(r.URL.Path, bdata)
+					sendData(w, RetData{
+						Code: -1,
+						Data: "正在镜像中...",
+					})
 				}
 			}
+			return
+		}
+		fmt.Println("请求地址：", r.URL.Path, r.Method)
+		bdata, err := readHaxelib(r.URL.Path)
+		if err != nil {
+			fmt.Println(err.Error())
+			sendData(w, RetData{
+				Code: -1,
+				Data: err.Error(),
+			})
 		} else {
-			w.Write([]byte("Not support the Path"))
+			// 开始上传到OSS
+			go uploadOSS(r.URL.Path, bdata)
+			w.Write(bdata)
 		}
 	})
 	dir := "files/3.0/"
@@ -164,5 +184,31 @@ func main() {
 	if err != nil {
 		fmt.Println("服务器错误：", err.Error())
 		panic(err)
+	}
+}
+
+// 读取Haxelib库
+func readHaxelib(path string) ([]byte, error) {
+	index := strings.Index(path, "files/3.0/")
+	if index != -1 {
+		rep, err := http.Get("https://lib.haxe.org" + path)
+		if err != nil {
+			fmt.Println("请求错误：", err.Error())
+			return nil, err
+		} else {
+			if rep.StatusCode == 200 {
+				defer rep.Body.Close()
+				bytes, b := ioutil.ReadAll(rep.Body)
+				if b == nil {
+					return bytes, nil
+				} else {
+					return nil, fmt.Errorf("StatuCode error:" + fmt.Sprint(rep.StatusCode) + b.Error())
+				}
+			} else {
+				return nil, fmt.Errorf("Not exist the Haxelib:" + path)
+			}
+		}
+	} else {
+		return nil, fmt.Errorf("Not support the Path")
 	}
 }

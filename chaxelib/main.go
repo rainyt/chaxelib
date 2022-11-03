@@ -19,6 +19,13 @@ func main() {
 		switch command {
 		case "clone":
 			// 镜像
+			lib := os.Args[2]
+			if strings.Contains(lib, ":") {
+				params := strings.Split(lib, ":")
+				cli.CloneHaxelib(params[0], params[1])
+			} else {
+				cli.CloneHaxelib(os.Args[2], "")
+			}
 		case "install":
 			// 安装
 			lib := os.Args[2]

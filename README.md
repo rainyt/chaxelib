@@ -15,3 +15,10 @@ make build-mac
 cd chaxelib
 make build-window
 ```
+
+## 命令行使用
+与`haxelib`保持一致，但只支持`install`命令：
+```shell
+chaxelib install openfl
+chaxelib install openfl:8.0.0
+```

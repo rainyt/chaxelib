@@ -1,0 +1,14 @@
+{
+  "name": "chaxelib",
+  "url": "https://github.com/rainyt/chaxelib",
+  "license": "MIT",
+  "tags": ["android"],
+  "description": "用于中国（国内）代替haxelib安装库的工具",
+  "version": "0.0.1",
+  "releasenote": "",
+  "contributors": ["rainy"],
+  "classPath": "src",
+  "dependencies": {
+
+  }
+}

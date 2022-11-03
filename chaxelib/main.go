@@ -94,7 +94,28 @@ func installHaxelib(libname string, version string) {
 	}
 	version = strings.ReplaceAll(version, ".", ",")
 	libzipfile := libname + "-" + version + ".zip"
+	// 做一个检测
+	ossurl := haxelib_path + "oss/files/3.0/" + libzipfile
+	ossret, e := http.Get(ossurl)
+	if e != nil {
+		panic(e)
+	} else {
+		defer ossret.Body.Close()
+		data, _ := ioutil.ReadAll(ossret.Body)
+		var jsonData map[string]any
+		json.Unmarshal(data, &jsonData)
+		println("镜像结果", string(data), jsonData["code"].(float64))
+		if jsonData["code"].(float64) == 0 {
+			downloadPath(libzipfile, jsonData["data"].(map[string]any)["url"].(string))
+			return
+		}
+	}
+
 	liburl := haxelib_path + "files/3.0/" + libzipfile
+	downloadPath(libzipfile, liburl)
+}
+
+func downloadPath(libzipfile string, liburl string) {
 	fmt.Println("正在下载：" + liburl)
 	h, e := http.Get(liburl)
 	if e != nil {

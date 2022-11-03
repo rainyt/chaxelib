@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -83,7 +83,7 @@ func uploadOSS(filename string, data []byte) {
 		fmt.Println(filename, "已镜像")
 		return
 	}
-	werr := ioutil.WriteFile(filename, data, 0666)
+	werr := os.WriteFile(filename, data, 0666)
 	if werr != nil {
 		fmt.Println("WriteFile Error:", werr.Error())
 		return
@@ -151,7 +151,7 @@ func main() {
 					})
 				} else {
 					// 开始上传到OSS
-					go uploadOSS(r.URL.Path, bdata)
+					go uploadOSS(queryUrl, bdata)
 					sendData(w, RetData{
 						Code: -1,
 						Data: "正在镜像中...",
@@ -198,7 +198,7 @@ func readHaxelib(path string) ([]byte, error) {
 		} else {
 			if rep.StatusCode == 200 {
 				defer rep.Body.Close()
-				bytes, b := ioutil.ReadAll(rep.Body)
+				bytes, b := io.ReadAll(rep.Body)
 				if b == nil {
 					return bytes, nil
 				} else {
@@ -209,6 +209,6 @@ func readHaxelib(path string) ([]byte, error) {
 			}
 		}
 	} else {
-		return nil, fmt.Errorf("Not support the Path")
+		return nil, fmt.Errorf("Not support the Path" + path)
 	}
 }

@@ -16,9 +16,14 @@ cd chaxelib
 make build-window
 ```
 
-## 命令行使用
+## 安装库
 与`haxelib`保持一致，但只支持`install`命令：
 ```shell
-chaxelib install openfl
-chaxelib install openfl:8.0.0
+chaxelib install oname:version
+```
+
+## 镜像克隆库
+如果install太慢，可以等待镜像完成后，再重新install，可通过下述命令，确认克隆情况：
+```shell
+chaxelib clone name:version
 ```

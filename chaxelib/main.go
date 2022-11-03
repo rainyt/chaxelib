@@ -1,204 +1,65 @@
 package main
 
 import (
-	"archive/zip"
-	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
+	"haxelib/v2/chaxelib/cli"
 	"os"
-	"os/exec"
-	"regexp"
 	"strings"
 )
 
-var haxelib_path = "https://haxelib.zygame.cc/"
+var VERSION = "1.0.0"
 
-type Reader struct {
-	io.Reader
-	Currnet int64
-}
-
-func (r *Reader) Read(p []byte) (n int, err error) {
-	n, err = r.Reader.Read(p)
-
-	r.Currnet += int64(n)
-	fmt.Printf("\r %0.2fmb", float64(r.Currnet)/1024./1024.)
-	return
+type CommandParams struct {
+	list map[string][]string
 }
 
 func main() {
-	fmt.Println(os.Args)
 	if len(os.Args) >= 3 {
 		var command = os.Args[1]
 		switch command {
+		case "clone":
+			// 镜像
 		case "install":
+			// 安装
 			lib := os.Args[2]
 			if strings.Contains(lib, ":") {
 				params := strings.Split(lib, ":")
-				installHaxelib(params[0], params[1])
+				cli.InstallHaxelib(params[0], params[1])
 			} else {
-				installHaxelib(os.Args[2], "")
+				cli.InstallHaxelib(os.Args[2], "")
 			}
 		default:
 			fmt.Println("不支持" + command + "命令")
 		}
-	}
-}
-
-// 获取项目版本号
-func getProjectVersion(libname string) []string {
-	var versions = []string{}
-	var query = "https://lib.haxe.org/p/" + libname + "/versions/"
-	h, e := http.Get(query)
-	if e != nil {
-		panic(e)
 	} else {
-		defer h.Body.Close()
-		b, _ := ioutil.ReadAll(h.Body)
-		content := string(b)
-		// 正则条件，获取所有支持的版本号
-		// fmt.Println(content)
-		re := regexp.MustCompile(">[0-9.]+</a")
-		ret := re.FindAllStringSubmatch(content, -1)
-		for _, v := range ret {
-			version := v[0]
-			version = strings.ReplaceAll(version, ">", "")
-			version = strings.ReplaceAll(version, "</a", "")
-			versions = append(versions, version)
+		fmt.Println("CHaxelib (CN) Tools version:", VERSION)
+		fmt.Println("  Usage: haxelib [command] [options]")
+		params := CommandParams{
+			list: map[string][]string{
+				"基础": {"install#通过库名安装第三方库"},
+				"镜像": {"clone#通过库名进行镜像，也可以通过该命令查询镜像情况"},
+			},
 		}
-	}
-	// fmt.Println(versions)
-	return versions
-}
-
-func installHaxelib(libname string, version string) {
-	versions := getProjectVersion(libname)
-	if len(versions) == 0 {
-		panic("库" + libname + "不存在")
-	}
-	if version != "" {
-		hasVersion := false
-		for _, v := range versions {
-			if v == version {
-				hasVersion = true
-				break
-			}
-		}
-		if !hasVersion {
-			panic("库" + libname + "不存在" + version + "版本")
-		}
-	} else {
-		version = versions[0]
-	}
-	version = strings.ReplaceAll(version, ".", ",")
-	libzipfile := libname + "-" + version + ".zip"
-	// 做一个检测
-	ossurl := haxelib_path + "oss/files/3.0/" + libzipfile
-	ossret, e := http.Get(ossurl)
-	if e != nil {
-		panic(e)
-	} else {
-		defer ossret.Body.Close()
-		data, _ := ioutil.ReadAll(ossret.Body)
-		var jsonData map[string]any
-		json.Unmarshal(data, &jsonData)
-		println("镜像结果", string(data), jsonData["code"].(float64))
-		if jsonData["code"].(float64) == 0 {
-			downloadPath(libzipfile, jsonData["data"].(map[string]any)["url"].(string))
-			return
-		}
-	}
-
-	liburl := haxelib_path + "files/3.0/" + libzipfile
-	downloadPath(libzipfile, liburl)
-}
-
-func downloadPath(libzipfile string, liburl string) {
-	fmt.Println("正在下载：" + liburl)
-	h, e := http.Get(liburl)
-	if e != nil {
-		panic(e)
-	} else {
-		defer h.Body.Close()
-		file, err := os.Create(libzipfile)
-		if err != nil {
-			panic(err)
-		}
-		defer file.Close()
-		reader := &Reader{
-			Reader: h.Body,
-		}
-		io.Copy(file, reader)
-		fmt.Println()
-		installLocalZip(libzipfile)
-	}
-}
-
-// Haxelib.json的格式
-type HaxelibData struct {
-	Dependencies map[string]any
-}
-
-// 检测依赖是否已存在
-func existHaxelib(libname string) bool {
-	c := exec.Command("haxelib", "path", libname)
-	c.Start()
-	err := c.Wait()
-	return err == nil
-}
-
-// 读取haxelib.json配置
-func readHaxelibJson(z []*zip.File) *HaxelibData {
-	for _, f := range z {
-		if f.FileInfo().Name() == "haxelib.json" {
-			rw, _ := f.Open()
-			bytes, bytesErr := ioutil.ReadAll(rw)
-			if bytesErr != nil {
-				panic(bytesErr)
-			}
-			haxelibJson := &HaxelibData{}
-			json.Unmarshal(bytes, haxelibJson)
-			return haxelibJson
-		}
-	}
-	return nil
-}
-
-func installLocalZip(zipfile string) {
-	// 先安装依赖，避免haxelib检测依赖
-	curZip, zipErr := zip.OpenReader(zipfile)
-	fmt.Println("检测依赖：", zipfile)
-	if zipErr != nil {
-		panic(zipErr)
-	} else {
-		// 解析haxelib.json
-		haxelibJson := readHaxelibJson(curZip.File)
-		if haxelibJson != nil {
-			fmt.Println("检测依赖...")
-			if haxelibJson.Dependencies != nil {
-				// 检查依赖
-				for k, v := range haxelibJson.Dependencies {
-					if !existHaxelib(k) {
-						installHaxelib(k, v.(string))
-					} else {
-						fmt.Println("依赖" + k + "已安装")
-					}
+		maxlen := 0
+		for _, v := range params.list {
+			for _, v2 := range v {
+				p := strings.Split(v2, "#")
+				if len(p[0]) > maxlen {
+					maxlen = len(p[0])
 				}
 			}
 		}
+		for k, v := range params.list {
+			fmt.Println("  " + k + ":")
+			for _, v2 := range v {
+				p := strings.Split(v2, "#")
+				space := ""
+				l := maxlen - len(p[0])
+				for i := 0; i < l; i++ {
+					space += " "
+				}
+				fmt.Println("    " + p[0] + space + ":" + p[1])
+			}
+		}
 	}
-
-	fmt.Println("开始安装：" + zipfile)
-	c := exec.Command("haxelib", "install", zipfile)
-	stdout, _ := c.StdoutPipe()
-	e := c.Start()
-	if e != nil {
-		panic(e)
-	}
-	output, _ := ioutil.ReadAll(stdout)
-	fmt.Println(string(output))
-	// 安装完成后，将压缩包删除
-	os.Remove(zipfile)
 }

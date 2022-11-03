@@ -1,6 +1,8 @@
 package main
 
 import (
+	"archive/zip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -113,7 +115,60 @@ func installHaxelib(libname string, version string) {
 	}
 }
 
+// Haxelib.json的格式
+type HaxelibData struct {
+	Dependencies map[string]any
+}
+
+// 检测依赖是否已存在
+func existHaxelib(libname string) bool {
+	c := exec.Command("haxelib", "path", libname)
+	c.Start()
+	err := c.Wait()
+	return err == nil
+}
+
+// 读取haxelib.json配置
+func readHaxelibJson(z []*zip.File) *HaxelibData {
+	for _, f := range z {
+		if f.FileInfo().Name() == "haxelib.json" {
+			rw, _ := f.Open()
+			bytes, bytesErr := ioutil.ReadAll(rw)
+			if bytesErr != nil {
+				panic(bytesErr)
+			}
+			haxelibJson := &HaxelibData{}
+			json.Unmarshal(bytes, haxelibJson)
+			return haxelibJson
+		}
+	}
+	return nil
+}
+
 func installLocalZip(zipfile string) {
+	// 先安装依赖，避免haxelib检测依赖
+	curZip, zipErr := zip.OpenReader(zipfile)
+	fmt.Println("检测依赖：", zipfile)
+	if zipErr != nil {
+		panic(zipErr)
+	} else {
+		// 解析haxelib.json
+		haxelibJson := readHaxelibJson(curZip.File)
+		if haxelibJson != nil {
+			fmt.Println("检测依赖...")
+			if haxelibJson.Dependencies != nil {
+				// 检查依赖
+				for k, v := range haxelibJson.Dependencies {
+					if !existHaxelib(k) {
+						installHaxelib(k, v.(string))
+					} else {
+						fmt.Println("依赖" + k + "已安装")
+					}
+				}
+			}
+		}
+	}
+
 	fmt.Println("开始安装：" + zipfile)
 	c := exec.Command("haxelib", "install", zipfile)
 	stdout, _ := c.StdoutPipe()

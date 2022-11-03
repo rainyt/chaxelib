@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -19,7 +19,7 @@ func CloneHaxelib(name string, version string) {
 		panic(e)
 	} else {
 		defer ossret.Body.Close()
-		content, err := ioutil.ReadAll(ossret.Body)
+		content, err := io.ReadAll(ossret.Body)
 		if err != nil {
 			panic(err)
 		} else {

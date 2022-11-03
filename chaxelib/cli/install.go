@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -46,7 +45,7 @@ func readHaxelibJson(z []*zip.File) *HaxelibData {
 	for _, f := range z {
 		if f.FileInfo().Name() == "haxelib.json" {
 			rw, _ := f.Open()
-			bytes, bytesErr := ioutil.ReadAll(rw)
+			bytes, bytesErr := io.ReadAll(rw)
 			if bytesErr != nil {
 				panic(bytesErr)
 			}
@@ -67,7 +66,7 @@ func getProjectVersion(libname string) []string {
 		panic(e)
 	} else {
 		defer h.Body.Close()
-		b, _ := ioutil.ReadAll(h.Body)
+		b, _ := io.ReadAll(h.Body)
 		content := string(b)
 		// 正则条件，获取所有支持的版本号
 		// fmt.Println(content)
@@ -121,7 +120,7 @@ func InstallHaxelib(libname string, version string) {
 		panic(e)
 	} else {
 		defer ossret.Body.Close()
-		data, _ := ioutil.ReadAll(ossret.Body)
+		data, _ := io.ReadAll(ossret.Body)
 		var jsonData map[string]any
 		json.Unmarshal(data, &jsonData)
 		println("镜像结果", string(data), jsonData["code"].(float64))
@@ -187,7 +186,7 @@ func installLocalZip(zipfile string) {
 	if e != nil {
 		panic(e)
 	}
-	output, _ := ioutil.ReadAll(stdout)
+	output, _ := io.ReadAll(stdout)
 	fmt.Println(string(output))
 	// 安装完成后，将压缩包删除
 	os.Remove(zipfile)

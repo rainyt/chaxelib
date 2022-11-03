@@ -123,4 +123,6 @@ func installLocalZip(zipfile string) {
 	}
 	output, _ := ioutil.ReadAll(stdout)
 	fmt.Println(string(output))
+	// 安装完成后，将压缩包删除
+	os.Remove(zipfile)
 }

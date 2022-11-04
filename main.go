@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"haxelib/v2/util"
 	"io"
 	"net/http"
 	"os"
@@ -38,21 +39,21 @@ func pathExists(path string) (bool, error) {
 // 判断OSS是否存在镜像库
 func existOSS(filename string) bool {
 	filename = strings.Join(strings.Split(filename, "")[1:], "")
-	fmt.Println("查询镜像库：", filename)
+	util.Log("查询镜像库：", filename)
 	client, err := oss.New(*OssEndpoint, *OssId, *OssSecret)
 	if err != nil {
-		fmt.Println("无法链接Oss服务器", err.Error())
+		util.Log("无法链接Oss服务器", err.Error())
 		return false
 	}
 	bucket, err := client.Bucket(*OssBucket)
 	if err != nil {
-		fmt.Println("无法链接Bucket:"+*OssBucket, err.Error())
+		util.Log("无法链接Bucket:"+*OssBucket, err.Error())
 		return false
 	}
 	// 判断是否已经镜像好了
 	existObject, _ := bucket.IsObjectExist(filename)
 	if existObject {
-		fmt.Println(filename, "已镜像")
+		util.Log(filename, "已镜像")
 		return true
 	}
 	return false
@@ -65,38 +66,38 @@ func uploadOSS(filename string, data []byte) {
 	uploadLock.Lock()
 	// 移除第一个/
 	filename = strings.Join(strings.Split(filename, "")[1:], "")
-	fmt.Println("开始镜像到OSS", filename)
+	util.Log("开始镜像到OSS", filename)
 	exist, _ := pathExists(filename)
 	if exist {
-		fmt.Println("已经在镜像进行中")
+		util.Log("已经在镜像进行中")
 		return
 	}
 	client, err := oss.New(*OssEndpoint, *OssId, *OssSecret)
 	if err != nil {
-		fmt.Println("无法链接Oss服务器", err.Error())
+		util.Log("无法链接Oss服务器", err.Error())
 		return
 	}
 	bucket, err := client.Bucket(*OssBucket)
 	if err != nil {
-		fmt.Println("无法链接Bucket:"+*OssBucket, err.Error())
+		util.Log("无法链接Bucket:"+*OssBucket, err.Error())
 		return
 	}
 	// 判断是否已经镜像好了
 	existObject, _ := bucket.IsObjectExist(filename)
 	if existObject {
-		fmt.Println(filename, "已镜像")
+		util.Log(filename, "已镜像")
 		return
 	}
 	werr := os.WriteFile(filename, data, 0666)
 	if werr != nil {
-		fmt.Println("WriteFile Error:", werr.Error())
+		util.Log("WriteFile Error:", werr.Error())
 		return
 	}
 	err = bucket.PutObjectFromFile(filename, filename)
 	if err != nil {
-		fmt.Println("文件"+filename+"无法上传到OSS", err.Error())
+		util.Log("文件"+filename+"无法上传到OSS", err.Error())
 	} else {
-		fmt.Println("镜像成功", filename)
+		util.Log("镜像成功", filename)
 	}
 	os.Remove(filename)
 	uploadLock.Unlock()
@@ -114,7 +115,11 @@ func sendData(w http.ResponseWriter, data RetData) {
 
 func main() {
 	flag.Parse()
+	util.InitLogger("debug")
+	util.Log("准备启动服务器")
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		util.Log("请求地址：", r.URL.Path)
 		ossIndex := strings.Index(r.URL.Path, "/oss")
 		if ossIndex == 0 {
 			// 查询oss镜像库
@@ -146,10 +151,9 @@ func main() {
 				})
 			} else {
 				// 尝试镜像
-				fmt.Println("请求地址：", queryUrl)
 				bdata, err := readHaxelib(queryUrl)
 				if err != nil {
-					fmt.Println(err.Error())
+					util.Log(err.Error())
 					sendData(w, RetData{
 						Code: -1,
 						Data: err.Error(),
@@ -165,10 +169,10 @@ func main() {
 			}
 			return
 		}
-		fmt.Println("请求地址：", r.URL.Path, r.Method)
+		util.Log("请求地址：", r.URL.Path, r.Method)
 		bdata, err := readHaxelib(r.URL.Path)
 		if err != nil {
-			fmt.Println(err.Error())
+			util.Log(err.Error())
 			sendData(w, RetData{
 				Code: -1,
 				Data: err.Error(),
@@ -182,14 +186,14 @@ func main() {
 	dir := "files/3.0/"
 	direrr := os.MkdirAll(dir, 0777)
 	if direrr != nil {
-		panic(direrr)
+		util.Log(direrr.Error())
 	}
-	fmt.Println("服务器启动：" + fmt.Sprint(*Port))
+	util.Log("服务器启动：" + fmt.Sprint(*Port))
 	err := http.ListenAndServe(":"+fmt.Sprint(*Port), nil)
 	if err != nil {
-		fmt.Println("服务器错误：", err.Error())
-		panic(err)
+		util.Log(err.Error())
 	}
+	util.Log("服务器停止了...")
 }
 
 // 读取Haxelib库
@@ -198,7 +202,7 @@ func readHaxelib(path string) ([]byte, error) {
 	if index != -1 {
 		rep, err := http.Get("https://lib.haxe.org" + path)
 		if err != nil {
-			fmt.Println("请求错误：", err.Error())
+			util.Log("请求错误：", err.Error())
 			return nil, err
 		} else {
 			if rep.StatusCode == 200 {

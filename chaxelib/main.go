@@ -24,7 +24,11 @@ func main() {
 				params := strings.Split(lib, ":")
 				cli.CloneHaxelib(params[0], params[1])
 			} else {
-				cli.CloneHaxelib(os.Args[2], "")
+				if len(os.Args) >= 4 {
+					cli.CloneHaxelib(os.Args[2], os.Args[3])
+				} else {
+					cli.CloneHaxelib(os.Args[2], "")
+				}
 			}
 		case "install":
 			// 安装

@@ -14,6 +14,7 @@ import (
 
 var Haxelib_path = "https://haxelib.zygame.cc/"
 
+// 带加载进度的
 type Reader struct {
 	io.Reader
 	Currnet int64

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 )
@@ -57,8 +58,11 @@ func existOSS(filename string) bool {
 	return false
 }
 
+var uploadLock sync.Mutex
+
 // 上传到OSS服务器
 func uploadOSS(filename string, data []byte) {
+	uploadLock.Lock()
 	// 移除第一个/
 	filename = strings.Join(strings.Split(filename, "")[1:], "")
 	fmt.Println("开始镜像到OSS", filename)
@@ -95,6 +99,7 @@ func uploadOSS(filename string, data []byte) {
 		fmt.Println("镜像成功", filename)
 	}
 	os.Remove(filename)
+	uploadLock.Unlock()
 }
 
 type RetData struct {

@@ -1,0 +1,13 @@
+<project>
+    <meta title="demo" package="com.sample.demo" version="1.0.0" company="Company Name" />
+    <!-- 指定类型 -->
+    <app main="Main" path="Export" file="demo" />
+    <!-- 指定资源目录 -->
+    <assets path="Assets" rename="assets" />
+    <!-- 指定库 -->
+    <haxelib name="zyheaps" />
+    <haxelib name="heaps" />
+    <haxelib name="actuate" />
+    <!-- 指定源码位置 -->
+    <source name="Source" />
+</project>

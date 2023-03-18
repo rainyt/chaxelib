@@ -34,6 +34,15 @@ func main() {
 			if writeErr != nil {
 				panic(writeErr)
 			}
+		case "upload":
+			// 上传库文件
+			path := cli.GetLocalConfig()
+			if path == "" {
+				panic("需要通过chaxelib local配置本地化库地址")
+			}
+			// 开始上传
+			dir := os.Args[2]
+			cli.UploadHaxeLibDir(dir)
 		case "clone":
 			// 镜像
 			lib := os.Args[2]

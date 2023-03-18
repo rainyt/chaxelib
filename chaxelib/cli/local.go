@@ -11,7 +11,7 @@ func GetLocalConfig() string {
 	if err == nil {
 		return string(content)
 	}
-	return "未配置本地地址"
+	return ""
 }
 
 // 获取本地缓存目录

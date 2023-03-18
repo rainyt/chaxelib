@@ -27,3 +27,24 @@ chaxelib install oname:version
 ```shell
 chaxelib clone name:version
 ```
+
+## 本地化服务器
+允许构造一个本地化服务器（chaxelib-local）来管理haxelib库，可使用命令：
+
+#### 配置本地化地址
+当运行chaxelib-local服务器后，可将启动的端口配置：
+```shell
+chaxelib local 192.168.1.8:5555
+```
+
+#### 提交库目录
+将一个haxelib库上传到本地化服务器中
+```shell
+chaxelib upload 库目录
+```
+
+#### 更新库
+将一个haxelib从本地化服务器更新
+```shell
+chaxelib update 库名:版本号
+```

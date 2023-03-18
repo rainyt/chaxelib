@@ -10,6 +10,7 @@ import (
 	"net/rpc"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -125,6 +126,9 @@ func UpdateHaxelib(libname string, version string) {
 		log.Fatal(err2)
 	}
 	fmt.Println("查询到的路径", path)
+	baseName := filepath.Base(path)
+	// 开始安装
+	downloadPath(baseName, "http://"+GetLocalConfig()+"/"+path)
 }
 
 func InstallHaxelib(libname string, version string) {

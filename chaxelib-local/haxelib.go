@@ -6,6 +6,17 @@ import (
 	"os"
 )
 
+// 查找haxelib库
+func FindHaxelib(name string, version string) (string, error) {
+	fmt.Println("查询", name, version)
+	savePath := "haxelib/" + name + "/" + version + ".zip"
+	_, err := os.Stat(savePath)
+	if err == nil {
+		return savePath, nil
+	}
+	return "", fmt.Errorf(name + ":" + version + "不存在")
+}
+
 // 识别haxelib是否有效，并缓存版本号库文件
 func SaveHaxelib(path string, bytes []byte) error {
 	var haxelibJsonPath = findHaxelibJson(path)
@@ -27,6 +38,8 @@ func SaveHaxelib(path string, bytes []byte) error {
 	// 判断存档是否已存在，如果已存在，则必须提交新版本
 	savePath := "haxelib/" + haxelibname + "/" + saveName
 	os.MkdirAll("haxelib/"+haxelibname, 0777)
+	// 并储存最后一个上传的版本记录
+	os.WriteFile("haxelib/"+haxelibname+"/last", []byte(version), 0777)
 	_, err2 := os.Stat(savePath)
 	if err2 == nil {
 		return fmt.Errorf(saveName + "存库已经存在，请更新版本号重新更新")

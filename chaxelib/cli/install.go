@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/rpc"
 	"os"
 	"os/exec"
 	"regexp"
@@ -108,7 +110,25 @@ func CheckVersion(libname string, version string) (string, error) {
 	return version, nil
 }
 
+// 通过本地化服务器更新库
+func UpdateHaxelib(libname string, version string) {
+	conn, err := rpc.DialHTTP("tcp", GetLocalConfig())
+	if err != nil {
+		log.Fatal(err)
+	}
+	path := ""
+	if version != "" {
+		libname += ":" + version
+	}
+	err2 := conn.Call("Haxelib.GetHaxelibUrl", libname, &path)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+	fmt.Println("查询到的路径", path)
+}
+
 func InstallHaxelib(libname string, version string) {
+	// 远程服务器
 	version, err := CheckVersion(libname, version)
 	if err != nil {
 		panic(err)

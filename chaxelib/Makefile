@@ -1,3 +1,6 @@
+build-mac-x86:
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build
+
 build-mac:
 	go build -o ./dist/chaxelib
 

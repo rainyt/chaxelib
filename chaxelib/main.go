@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"haxelib/v2/chaxelib/cli"
 	"os"
@@ -14,9 +15,25 @@ type CommandParams struct {
 }
 
 func main() {
-	if len(os.Args) >= 3 {
+	if len(os.Args) >= 2 {
 		var command = os.Args[1]
 		switch command {
+		case "local":
+			// 本地化配置
+			dir, _ := os.UserHomeDir()
+			file := dir + "/.chaxelib_local"
+			fmt.Println("当前配置：", cli.GetLocalConfig())
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Println("请输入本地化haxelib储存服务器IP地址(127.0.0.1:5000):")
+			text, err := reader.ReadString('\n')
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println("服务器配置成功：", text)
+			writeErr := os.WriteFile(file, []byte(strings.ReplaceAll(text, "\n", "")), 0666)
+			if writeErr != nil {
+				panic(writeErr)
+			}
 		case "clone":
 			// 镜像
 			lib := os.Args[2]
@@ -47,8 +64,11 @@ func main() {
 		fmt.Println("  Usage: haxelib [command] [options]")
 		params := CommandParams{
 			list: map[string][]string{
-				"基础": {"install#通过库名安装第三方库"},
-				"镜像": {"clone#通过库名进行镜像，也可以通过该命令查询镜像情况"},
+				"基础":  {"install#通过库名安装第三方库"},
+				"镜像":  {"clone#通过库名进行镜像，也可以通过该命令查询镜像情况"},
+				"本地化": {"local#配置本地服务器IP，可绑定haxelib服务器，会优先从本地安装，配置之后，才允许使用upload命令"},
+				"上传":  {"upload#上传haxelib库到本地服务器"},
+				"更新":  {"update#会优先从本地进行检查，不存在时，将从线上进行更新"},
 			},
 		}
 		maxlen := 0

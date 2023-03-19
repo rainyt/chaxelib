@@ -128,7 +128,12 @@ func UpdateHaxelib(libname string, version string) {
 	fmt.Println("查询到的路径", path)
 	baseName := filepath.Base(path)
 	// 开始安装
-	downloadPath(baseName, "http://"+GetLocalConfig()+"/"+path)
+	downloadUrl := "http://" + GetLocalConfig() + "/" + path
+	pwd := GetAccestCode()
+	if pwd != "" {
+		downloadUrl += "?pwd=" + pwd
+	}
+	downloadPath(baseName, downloadUrl)
 }
 
 func InstallHaxelib(libname string, version string) {
@@ -181,6 +186,8 @@ func downloadPath(libzipfile string, liburl string) {
 }
 
 func installLocalZip(zipfile string) {
+	// 安装完成后，将压缩包删除
+	defer os.Remove(zipfile)
 	// 先安装依赖，避免haxelib检测依赖
 	curZip, zipErr := zip.OpenReader(zipfile)
 	fmt.Println("检测依赖：", zipfile)
@@ -213,6 +220,4 @@ func installLocalZip(zipfile string) {
 	}
 	output, _ := io.ReadAll(stdout)
 	fmt.Println(string(output))
-	// 安装完成后，将压缩包删除
-	os.Remove(zipfile)
 }

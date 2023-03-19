@@ -34,6 +34,13 @@ func main() {
 			if writeErr != nil {
 				panic(writeErr)
 			}
+			fmt.Println("请输入授权码，如果不存在密码，请直接回车:")
+			text2, err2 := reader.ReadString('\n')
+			if err2 != nil {
+				panic(err2)
+			}
+			fmt.Println("授权码设置：", text2)
+			os.WriteFile(cli.GetLocalConfigPwdPath(), []byte(strings.ReplaceAll(text2, "\n", "")), 0666)
 		case "upload":
 			// 上传库文件
 			path := cli.GetLocalConfig()

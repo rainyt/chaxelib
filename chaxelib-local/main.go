@@ -48,6 +48,15 @@ func (h *Haxelib) GetHaxelibUrl(haxelibname string, ret *string) error {
 var upload_lock sync.Mutex
 
 func (h *Haxelib) UploadHaxelib(bytes []byte, ret *int) error {
+	// Passworld检查授权码
+	if *Passworld != "" {
+		l := len(*Passworld)
+		pwd := string(bytes[len(bytes)-l:])
+		if pwd != *Passworld {
+			return fmt.Errorf("授权码不正确")
+		}
+		bytes = bytes[0 : len(bytes)-l]
+	}
 	// 上传haxelib进行安全锁处理
 	upload_lock.Lock()
 	defer upload_lock.Unlock()
@@ -85,6 +94,13 @@ func main() {
 	rpc.Register(haxelib)
 	rpc.HandleHTTP()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if *Passworld != "" {
+			pwd := r.URL.Query().Get("pwd")
+			if pwd != *Passworld {
+				w.Write([]byte(r.URL.Path + " accect is error."))
+				return
+			}
+		}
 		fmt.Println(r.URL.Path)
 		bytes, err := os.ReadFile("." + r.URL.Path)
 		if err == nil {

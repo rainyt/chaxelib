@@ -32,6 +32,11 @@ func UploadHaxeLibDir(dir string) {
 	}
 	ret := 0
 	bytes, _ := os.ReadFile(wd + "/" + tempFile + ".zip")
+	pwd := GetAccestCode()
+	if pwd != "" {
+		bytes = append(bytes, []byte(pwd)...)
+	}
+	// 追加密码
 	err2 := conn.Call("Haxelib.UploadHaxelib", bytes, &ret)
 	if err2 != nil {
 		log.Fatal(err2)

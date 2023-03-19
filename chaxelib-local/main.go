@@ -17,6 +17,7 @@ type Haxelib struct{}
 
 var (
 	Passworld = flag.String("pwd", "", "设定授权码，当存在授权码时，需要请求时提供授权码进行登录下载，否则会被拒绝")
+	Port      = flag.String("port", "5555", "设定端口，默认5555")
 )
 
 // 获取Haxelib库的下载地址
@@ -110,7 +111,7 @@ func main() {
 			w.Write([]byte(r.URL.Path + " is not found"))
 		}
 	})
-	err := http.ListenAndServe(":5555", nil)
+	err := http.ListenAndServe(":"+*Port, nil)
 	if err != nil {
 		panic(err)
 	}

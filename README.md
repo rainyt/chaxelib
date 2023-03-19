@@ -34,7 +34,9 @@ chaxelib clone name:version
 #### 配置本地化地址
 当运行chaxelib-local服务器后，可将启动的端口配置：
 ```shell
-chaxelib local 192.168.1.8:5555
+chaxelib local
+192.168.1.8:5555
+授权码
 ```
 
 #### 提交库目录

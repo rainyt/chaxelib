@@ -48,3 +48,9 @@ chaxelib upload 库目录
 ```shell
 chaxelib update 库名:版本号
 ```
+
+#### 授权码模式
+当服务器希望只给拥有授权码的客户端访问，可提供`--pwd`参数：
+```shell
+chaxelib-local --pwd=ABC123
+```

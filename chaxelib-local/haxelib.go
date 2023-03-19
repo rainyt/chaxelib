@@ -4,11 +4,31 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 )
+
+// 获得库最新的版本
+func GetLastVersion(haxelib string) string {
+	last := "haxelib/" + haxelib + "/last"
+	_, e2 := os.Stat(last)
+	if e2 != nil {
+		return ""
+	}
+	b, _ := os.ReadFile(last)
+	return string(b)
+}
 
 // 查找haxelib库
 func FindHaxelib(name string, version string) (string, error) {
 	fmt.Println("查询", name, version)
+	isUpdata := strings.Contains(version, "+")
+	if isUpdata {
+		// 需要比对版本
+		last := GetLastVersion(name)
+		if last == version {
+			return "", fmt.Errorf(name + ":" + version + "版本一致，跳过更新")
+		}
+	}
 	savePath := "haxelib/" + name + "/" + version + ".zip"
 	_, err := os.Stat(savePath)
 	if err == nil {

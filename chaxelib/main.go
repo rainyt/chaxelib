@@ -75,11 +75,22 @@ func main() {
 		case "update":
 			// 从本地化更新库
 			lib := os.Args[2]
-			if strings.Contains(lib, ":") {
-				params := strings.Split(lib, ":")
-				cli.UpdateHaxelib(params[0], params[1])
+			if strings.Contains(lib, ".hxml") {
+				// hxml配置
+				cli.UpdateHaxelibByHxml(lib)
 			} else {
-				cli.UpdateHaxelib(os.Args[2], "")
+				if strings.Contains(lib, ":") {
+					params := strings.Split(lib, ":")
+					err := cli.UpdateHaxelib(params[0], params[1])
+					if err != nil {
+						panic(err)
+					}
+				} else {
+					err := cli.UpdateHaxelib(os.Args[2], "")
+					if err != nil {
+						panic(err)
+					}
+				}
 			}
 		default:
 			fmt.Println("不支持" + command + "命令")

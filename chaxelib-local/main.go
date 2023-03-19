@@ -28,13 +28,7 @@ func (h *Haxelib) GetHaxelibUrl(haxelibname string, ret *string) error {
 	if len(args) == 1 {
 		haxelibname = args[0]
 		// 读取配置last配置
-		last := "haxelib/" + haxelibname + "/last"
-		_, e2 := os.Stat(last)
-		if e2 != nil {
-			return e2
-		}
-		b, _ := os.ReadFile(last)
-		version = string(b)
+		version = GetLastVersion(haxelibname)
 	} else {
 		haxelibname = args[0]
 		version = args[1]

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/rpc"
 	"os"
@@ -112,10 +111,12 @@ func CheckVersion(libname string, version string) (string, error) {
 }
 
 // 通过本地化服务器更新库
-func UpdateHaxelib(libname string, version string) {
+func UpdateHaxelib(libname string, version string) error {
+	fmt.Println("update lib:", libname, version)
 	conn, err := rpc.DialHTTP("tcp", GetLocalConfig())
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err.Error())
+		return err
 	}
 	path := ""
 	if version != "" {
@@ -123,7 +124,8 @@ func UpdateHaxelib(libname string, version string) {
 	}
 	err2 := conn.Call("Haxelib.GetHaxelibUrl", libname, &path)
 	if err2 != nil {
-		log.Fatal(err2)
+		fmt.Println(err2.Error())
+		return err2
 	}
 	fmt.Println("查询到的路径", path)
 	baseName := filepath.Base(path)
@@ -134,6 +136,7 @@ func UpdateHaxelib(libname string, version string) {
 		downloadUrl += "?pwd=" + pwd
 	}
 	downloadPath(baseName, downloadUrl)
+	return nil
 }
 
 func InstallHaxelib(libname string, version string) {
@@ -220,4 +223,69 @@ func installLocalZip(zipfile string) {
 	}
 	output, _ := io.ReadAll(stdout)
 	fmt.Println(string(output))
+}
+
+// 从hxml配置中进行更新haxelib
+func UpdateHaxelibByHxml(hxmlpath string) {
+	b, err := os.ReadFile(hxmlpath)
+	if err != nil {
+		panic(err)
+	}
+	cmd := exec.Command("haxelib", "list")
+	output, _ := cmd.StdoutPipe()
+	cmd.Start()
+	all, _ := io.ReadAll(output)
+	haxelibReg, _ := regexp.Compile("[^[dev\n][a-zA-Z-_0-9]+:")
+	allHaxelib := haxelibReg.FindAllString(string(all), -1)
+	hxml := string(b)
+	reg, _ := regexp.Compile("-D [a-zA-Z-_0-9]+")
+	uarr := reg.FindAllString(hxml, -1)
+	haxelib := []string{}
+	for _, v := range uarr {
+		lib := strings.ReplaceAll(v, "-D ", "")
+		for _, v2 := range allHaxelib {
+			if v2 == lib+":" {
+				haxelib = append(haxelib, lib)
+				break
+			}
+		}
+	}
+	haxelibPath := CmtToString("haxelib config")
+	haxelibPath = strings.ReplaceAll(haxelibPath, "\n", "")
+	fmt.Println("haxelibPath = ", haxelibPath)
+	for _, v := range haxelib {
+		// 先从本地获取库的环境配置，如果是dev版本，则不会更新，如果是普通版本，则会从线上更新
+		dev := IsHaxelibDev(haxelibPath, v)
+		if !dev {
+			UpdateHaxelib(v, GetHaxelibCurrentVersion(haxelibPath, v)+"+")
+		}
+	}
+}
+
+// 获取Haxelib当前版本
+func GetHaxelibCurrentVersion(config string, libname string) string {
+	path := config + libname + "/.current"
+	_, err := os.Stat(path)
+	if err == nil {
+		r, _ := os.ReadFile(path)
+		return string(r)
+	}
+	return ""
+}
+
+// 该haxelib是否dev环境
+func IsHaxelibDev(config string, libname string) bool {
+	path := config + libname + "/.dev"
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// 执行命令并转成string类型
+func CmtToString(cmd string) string {
+	args := strings.Split(cmd, " ")
+	pathCmd := exec.Command(args[0], args[1:]...)
+	pathOutput, _ := pathCmd.StdoutPipe()
+	pathCmd.Start()
+	pathString, _ := io.ReadAll(pathOutput)
+	return string(pathString)
 }

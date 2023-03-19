@@ -50,6 +50,10 @@ chaxelib upload 库目录
 ```shell
 chaxelib update 库名:版本号
 ```
+运行将一个hxml文件进行批量更新流程
+```shell
+chaxelib update ./build.hxml
+```
 
 #### 授权码模式
 当服务器希望只给拥有授权码的客户端访问，可提供`--pwd`参数：

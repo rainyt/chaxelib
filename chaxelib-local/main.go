@@ -2,16 +2,22 @@ package main
 
 import (
 	"archive/zip"
+	"flag"
 	"fmt"
 	"haxelib/v2/chaxelib/cli"
 	"net/http"
 	"net/rpc"
 	"os"
 	"strings"
+	"sync"
 )
 
 // Haxelib RPC实现
 type Haxelib struct{}
+
+var (
+	Passworld = flag.String("pwd", "", "设定授权码，当存在授权码时，需要请求时提供授权码进行登录下载，否则会被拒绝")
+)
 
 // 获取Haxelib库的下载地址
 func (h *Haxelib) GetHaxelibUrl(haxelibname string, ret *string) error {
@@ -39,7 +45,12 @@ func (h *Haxelib) GetHaxelibUrl(haxelibname string, ret *string) error {
 	return e
 }
 
+var upload_lock sync.Mutex
+
 func (h *Haxelib) UploadHaxelib(bytes []byte, ret *int) error {
+	// 上传haxelib进行安全锁处理
+	upload_lock.Lock()
+	defer upload_lock.Unlock()
 	fmt.Println("接收到二进制数据", len(bytes))
 	temp := "haxelib/temp.zip"
 	defer os.Remove(temp)
@@ -68,6 +79,7 @@ func InitConfig() {
 }
 
 func main() {
+	flag.Parse()
 	InitConfig()
 	haxelib := &Haxelib{}
 	rpc.Register(haxelib)

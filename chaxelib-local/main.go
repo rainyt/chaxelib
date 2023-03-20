@@ -105,6 +105,7 @@ func main() {
 			w.Write([]byte(r.URL.Path + " is not found"))
 		}
 	})
+	fmt.Println("启动chaxelib-local", ":"+*Port)
 	err := http.ListenAndServe(":"+*Port, nil)
 	if err != nil {
 		panic(err)

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"archive/zip"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -29,7 +30,8 @@ func Zip(dst io.Writer, src string) error {
 	defer zw.Close()
 
 	// 通过filepath封装的Walk来递归处理源路径到压缩文件中
-	return filepath.Walk(src, func(path string, info fs.FileInfo, err error) error {
+	return Walk(src, func(path string, info fs.FileInfo, err error) error {
+
 		// 是否存在异常
 		if err != nil {
 			return err
@@ -84,6 +86,33 @@ func Zip(dst io.Writer, src string) error {
 		// 搞定
 		return nil
 	})
+}
+
+type WalkFunc func(path string, info fs.FileInfo, err error) error
+
+func Walk(src string, fn WalkFunc) error {
+	dir, e := os.ReadDir(src)
+	if e != nil {
+		return e
+	}
+	for _, de := range dir {
+		start := de.Name()[0]
+		if string(start) != "." {
+			// 忽略隐藏文件、目录
+			if de.IsDir() {
+				e := Walk(src+"/"+de.Name(), fn)
+				if e != nil {
+					return e
+				}
+			} else {
+				i, _ := de.Info()
+				fn(src+"/"+de.Name(), i, nil)
+			}
+		} else {
+			fmt.Println("忽略文件或者目录", src+"/"+de.Name())
+		}
+	}
+	return nil
 }
 
 // Unzip 解压压缩文件

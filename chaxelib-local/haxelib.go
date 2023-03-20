@@ -84,7 +84,10 @@ func findHaxelibJson(dir string) string {
 		if name == "haxelib.json" {
 			return dir + "/" + name
 		} else if de.Type().IsDir() {
-			return findHaxelibJson(dir + "/" + name)
+			path := findHaxelibJson(dir + "/" + name)
+			if path != "" {
+				return path
+			}
 		}
 	}
 	return ""

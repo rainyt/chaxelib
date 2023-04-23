@@ -120,14 +120,23 @@ func UpdateHaxelib(libname string, version string) error {
 	}
 	path := ""
 	if version != "" {
-		libname += ":" + version
+		if !strings.Contains(version, "+") {
+			libname += ":" + version
+		}
 	}
 	err2 := conn.Call("Haxelib.GetHaxelibUrl", libname, &path)
 	if err2 != nil {
 		fmt.Println(err2.Error())
 		return err2
 	}
+
 	fmt.Println("查询到的路径", path)
+	if strings.Contains(version, "+") {
+		if strings.Contains(path, strings.Replace(version, "+", "", -1)) {
+			fmt.Println("本地已经存在此版本")
+			return nil
+		}
+	}
 	baseName := filepath.Base(path)
 	// 开始安装
 	downloadUrl := "http://" + GetLocalConfig() + "/" + path
